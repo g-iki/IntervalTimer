@@ -1,29 +1,42 @@
-# HIIT Interval Timer
+# HIIT インターバルタイマー
 
-Web-based Interval Timer tailored for HIIT workouts.
+HIIT（高強度インターバルトレーニング）に最適な、Webベースのカスタマイズ可能なインターバルタイマーです。
 
-## Features
-- **Customizable Phases**: Warmup, Workout, Rest, Rounds, Sets, Set Rest, Cooldown.
-- **Audio Cues**: Beeps during the last 5 seconds and a distinct sound at the end of each phase.
-- **Local Storage**: Automatically saves your settings.
-- **Responsive Design**: Works on PC and Smartphone with a premium dark mode interface.
-- **Wake Lock**: Prevents screen sleep during workouts (on supported browsers).
+## 公開URL
 
-## How to Run
+https://g-iki.github.io/IntervalTimer/
 
-1. Ensure you have Node.js installed.
-2. Open a terminal in this folder.
-3. Run the development server:
+
+## 特徴
+- **詳細なフェーズ設定**: ウォームアップ、運動、休憩、ラウンド数、セット数、セット間休憩、クールダウンを個別に設定可能。
+- **直感的な操作**: ボタンによる調整（5秒ステップ/1回ステップ）に加え、数字を直接クリックしてキーボードでの手入力も可能。
+- **音声ガイダンス**: 終了5秒前からカウントダウン音が鳴り、フェーズの切り替わりを音でお知らせします。
+- **プリセット保存**: 設定に名前をつけて保存・呼び出しができるので、メニューごとの使い分けが簡単です。
+- **レスポンシブデザイン**: PCの広い画面でも、スマホの縦長画面でも美しく使いやすいデザインを採用。
+- **スリープ防止機能**: タイマーが動いている間、画面が勝手に暗くなるのを防ぎます（対応ブラウザのみ）。
+
+## 使い方（ローカル開発用）
+
+1. Node.jsがインストールされていることを確認してください。
+2. このフォルダをターミナルで開きます。
+3. 依存関係をインストールします（初回のみ）:
+   ```bash
+   npm install
+   ```
+4. 開発サーバーを起動します:
    ```bash
    npm run dev
    ```
-4. Open the displayed URL (e.g., `http://localhost:5173`) in your browser.
+5. ブラウザで `http://localhost:5173` を開きます。
 
-## Settings Guide
-- **Warmup**: Time before the first round.
-- **Workout**: Duration of the exercise.
-- **Rest**: Rest between rounds (skipped on the last round of a set).
-- **Rounds**: Number of workout/rest cycles per set.
-- **Sets**: Number of round groups.
-- **Set Rest**: Rest between sets (skipped on the last set).
-- **Cooldown**: Time after the last set.
+## GitHub Pagesへのデプロイ方法
+
+1. GitHubにリポジトリを作成し、リモートリポジトリとして登録します。
+2. 以下のコマンドを実行してビルドとデプロイを行います:
+   ```bash
+   npm run build
+   npm run deploy
+   ```
+
+## ライセンス
+MIT License
