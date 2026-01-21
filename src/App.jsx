@@ -163,9 +163,10 @@ function App() {
   };
 
   // Audio helper
-  const playSound = (freq, duration, type = 'sine') => {
+  const playSound = (freq, duration, type = 'sine', startTime = null) => {
     if (!audioContext.current) return;
     const ctx = audioContext.current;
+    const start = startTime || ctx.currentTime;
     
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -175,13 +176,19 @@ function App() {
     osc.connect(gain);
     gain.connect(ctx.destination);
     
-    osc.start();
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
-    osc.stop(ctx.currentTime + duration);
+    osc.start(start);
+    gain.gain.setValueAtTime(0.1, start);
+    gain.gain.exponentialRampToValueAtTime(0.00001, start + duration);
+    osc.stop(start + duration);
   };
 
   const playTick = () => playSound(880, 0.1);
+  const playDoubleTick = () => {
+    if (!audioContext.current) return;
+    const now = audioContext.current.currentTime;
+    playSound(880, 0.08, 'sine', now);
+    playSound(880, 0.08, 'sine', now + 0.15);
+  };
   const playFinished = () => playSound(440, 0.8, 'square');
 
   // Timer tick logic
@@ -199,8 +206,17 @@ function App() {
 
   // Handle countdown sounds
   useEffect(() => {
-    if (isRunning && timeLeft > 0 && timeLeft <= 5) {
-      playTick();
+    if (isRunning && timeLeft > 0) {
+      // 5-minute multiples, 1-minute mark, and final 5 seconds countdown
+      const isFiveMinMultiple = timeLeft % 300 === 0;
+      const isOneMin = timeLeft === 60;
+      const isCountdown = timeLeft <= 5;
+
+      if (isFiveMinMultiple || isOneMin) {
+        playDoubleTick();
+      } else if (isCountdown) {
+        playTick();
+      }
     } else if (isRunning && timeLeft === 0 && status !== PHASES.IDLE && status !== PHASES.FINISHED) {
       playFinished();
     }
