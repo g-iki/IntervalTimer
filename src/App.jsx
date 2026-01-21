@@ -121,6 +121,7 @@ function App() {
   const [profileName, setProfileName] = useState('');
   const [status, setStatus] = useState(PHASES.IDLE);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [totalTime, setTotalTime] = useState(0);
   const [currentRound, setCurrentRound] = useState(1);
   const [currentSet, setCurrentSet] = useState(1);
   const [isRunning, setIsRunning] = useState(false);
@@ -247,6 +248,7 @@ function App() {
   const startPhase = (phase, time) => {
     setStatus(phase);
     setTimeLeft(time);
+    setTotalTime(time);
   };
 
   const startWorkout = () => {
@@ -340,6 +342,49 @@ function App() {
     if(window.confirm('Delete this profile?')) {
       setProfiles(profiles.filter(p => p.id !== id));
     }
+  };
+  
+  const ProgressCircle = ({ timeLeft, totalTime, color }) => {
+    const radius = 140;
+    const stroke = 12;
+    const normalizedRadius = radius - stroke * 2;
+    const circumference = normalizedRadius * 2 * Math.PI;
+    const strokeDashoffset = totalTime > 0 ? circumference - (timeLeft / totalTime) * circumference : 0;
+
+    return (
+      <div className="progress-container">
+        <svg
+          height={radius * 2}
+          width={radius * 2}
+          className="progress-svg"
+        >
+          <circle
+            stroke="rgba(255, 255, 255, 0.1)"
+            fill="transparent"
+            strokeWidth={stroke}
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+          />
+          <circle
+            stroke={color}
+            fill="transparent"
+            strokeDasharray={circumference + ' ' + circumference}
+            style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.5s linear, stroke 0.3s ease' }}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+          />
+        </svg>
+        <div className="progress-content">
+          <div className="timer-display">
+            {formatTime(timeLeft)}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderSetting = (key, label, step = 5) => (
@@ -435,13 +480,15 @@ function App() {
   return (
     <div className="container" style={{ justifyContent: 'center' }}>
       <div className="glass-panel" style={{ textAlign: 'center', width: '100%', padding: '40px 20px', borderTop: `5px solid ${PHASE_COLORS[status]}` }}>
-        <h2 style={{ fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '2px', color: PHASE_COLORS[status], marginBottom: '10px' }}>
+        <h2 style={{ fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '2px', color: PHASE_COLORS[status], marginBottom: '20px' }}>
            {PHASE_NAMES[status]}
         </h2>
         
-        <div style={{ fontSize: '5rem', fontWeight: '700', fontVariantNumeric: 'tabular-nums', margin: '20px 0', lineHeight: 1 }}>
-          {formatTime(timeLeft)}
-        </div>
+        <ProgressCircle 
+          timeLeft={timeLeft} 
+          totalTime={totalTime} 
+          color={PHASE_COLORS[status]} 
+        />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
            <div>
