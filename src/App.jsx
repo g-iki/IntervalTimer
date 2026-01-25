@@ -132,6 +132,8 @@ function App() {
   const baseTimeRef = useRef(null);
   const audioContext = useRef(null);
   const wakeLock = useRef(null);
+  const pipWindowRef = useRef(null);
+  const [isPipActive, setIsPipActive] = useState(false);
 
   // Initialize Web Worker for background timing
   useEffect(() => {
@@ -416,6 +418,73 @@ function App() {
       setProfiles(profiles.filter(p => p.id !== id));
     }
   };
+
+  const togglePip = async () => {
+    if (!window.documentPictureInPicture) {
+      alert('Your browser does not support Document Picture-in-Picture.');
+      return;
+    }
+
+    if (isPipActive) {
+      pipWindowRef.current.close();
+      return;
+    }
+
+    try {
+      const pipWindow = await window.documentPictureInPicture.requestWindow({
+        width: 400,
+        height: 500,
+      });
+
+      pipWindowRef.current = pipWindow;
+      setIsPipActive(true);
+
+      // Copy styles
+      [...document.styleSheets].forEach((styleSheet) => {
+        try {
+          if (styleSheet.cssRules) {
+            const newStyle = pipWindow.document.createElement('style');
+            [...styleSheet.cssRules].forEach((rule) => {
+              newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
+            });
+            pipWindow.document.head.appendChild(newStyle);
+          } else if (styleSheet.href) {
+            const newLink = pipWindow.document.createElement('link');
+            newLink.rel = 'stylesheet';
+            newLink.href = styleSheet.href;
+            pipWindow.document.head.appendChild(newLink);
+          }
+        } catch (e) {
+          console.error('Error copying styles to PiP window:', e);
+        }
+      });
+
+      // Move timer content
+      const container = document.getElementById('timer-container');
+      if (container) {
+        pipWindow.document.body.appendChild(container);
+        // Ensure body has background in PiP
+        pipWindow.document.body.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
+        pipWindow.document.body.style.margin = '0';
+        pipWindow.document.body.style.display = 'flex';
+        pipWindow.document.body.style.alignItems = 'center';
+        pipWindow.document.body.style.justifyContent = 'center';
+        pipWindow.document.body.style.minHeight = '100vh';
+      }
+
+      pipWindow.addEventListener('unload', () => {
+        setIsPipActive(false);
+        pipWindowRef.current = null;
+        // Move content back
+        const appRoot = document.getElementById('pip-placeholder');
+        if (appRoot && container) {
+          appRoot.appendChild(container);
+        }
+      });
+    } catch (err) {
+      console.error('Failed to enter PiP:', err);
+    }
+  };
   
   const ProgressCircle = ({ timeLeft, totalTime, color }) => {
     const radius = 140;
@@ -551,36 +620,47 @@ function App() {
   }
 
   return (
-    <div className="container" style={{ justifyContent: 'center' }}>
-      <div className="glass-panel" style={{ textAlign: 'center', width: '100%', padding: '40px 20px', borderTop: `5px solid ${PHASE_COLORS[status]}` }}>
-        <h2 style={{ fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '2px', color: PHASE_COLORS[status], marginBottom: '20px' }}>
-           {PHASE_NAMES[status]}
-        </h2>
-        
-        <ProgressCircle 
-          timeLeft={timeLeft} 
-          totalTime={totalTime} 
-          color={PHASE_COLORS[status]} 
-        />
+    <div className="container" id="pip-placeholder" style={{ justifyContent: 'center' }}>
+      <div id="timer-container" style={{ width: '100%' }}>
+        <div className="glass-panel" style={{ textAlign: 'center', width: '100%', padding: '40px 20px', borderTop: `5px solid ${PHASE_COLORS[status]}` }}>
+          <h2 style={{ fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '2px', color: PHASE_COLORS[status], marginBottom: '20px' }}>
+            {PHASE_NAMES[status]}
+          </h2>
+          
+          <ProgressCircle 
+            timeLeft={timeLeft} 
+            totalTime={totalTime} 
+            color={PHASE_COLORS[status]} 
+          />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-           <div>
-             <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>ROUND</div>
-             <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{currentRound} / {settings.rounds}</div>
-           </div>
-           <div>
-             <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>SET</div>
-             <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{currentSet} / {settings.sets}</div>
-           </div>
-        </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+            <div>
+              <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>ROUND</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{currentRound} / {settings.rounds}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>SET</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{currentSet} / {settings.sets}</div>
+            </div>
+          </div>
 
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-           <button onClick={() => setIsRunning(!isRunning)} style={{ flex: 1, backgroundColor: isRunning ? '#e74c3c' : '#2ecc71' }}>
-             {isRunning ? 'Pause' : 'Resume'}
-           </button>
-           <button onClick={handleReset} style={{ flex: 1, backgroundColor: '#7f8c8d' }}>
-             Reset
-           </button>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => setIsRunning(!isRunning)} style={{ flex: 1, minWidth: '100px', backgroundColor: isRunning ? '#e74c3c' : '#2ecc71' }}>
+              {isRunning ? 'Pause' : 'Resume'}
+            </button>
+            <button onClick={handleReset} style={{ flex: 1, minWidth: '100px', backgroundColor: '#7f8c8d' }}>
+              Reset
+            </button>
+            {window.documentPictureInPicture && !isPipActive && (
+              <button 
+                onClick={togglePip} 
+                style={{ flex: '1 1 100%', marginTop: '10px', backgroundColor: '#34495e', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <span>Pop-out Timer</span>
+                <span style={{ fontSize: '0.8rem' }}>📺</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
