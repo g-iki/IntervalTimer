@@ -127,8 +127,57 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   
   const timerRef = useRef(null);
+  const workerRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const baseTimeRef = useRef(null);
   const audioContext = useRef(null);
   const wakeLock = useRef(null);
+
+  // Initialize Web Worker for background timing
+  useEffect(() => {
+    const workerCode = `
+      let timer = null;
+      self.onmessage = (e) => {
+        if (e.data === 'start') {
+          if (timer) clearInterval(timer);
+          timer = setInterval(() => self.postMessage('tick'), 100);
+        } else if (e.data === 'stop') {
+          if (timer) clearInterval(timer);
+          timer = null;
+        }
+      };
+    `;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(blob);
+    workerRef.current = new Worker(workerUrl);
+
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
+      URL.revokeObjectURL(workerUrl);
+    };
+  }, []);
+
+  // Sync timer when coming back to the tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRunning && startTimeRef.current !== null) {
+        syncTime();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isRunning]);
+
+  const syncTime = () => {
+    if (!startTimeRef.current) return;
+    const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    const newTimeLeft = Math.max(0, baseTimeRef.current - elapsed);
+    if (newTimeLeft !== timeLeft) {
+      setTimeLeft(newTimeLeft);
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('intervalTimerSettings', JSON.stringify(settings));
@@ -192,18 +241,37 @@ function App() {
   };
   const playFinished = () => playSound(440, 0.8, 'square');
 
-  // Timer tick logic
+  // Timer tick logic using Web Worker for background stability
   useEffect(() => {
     if (isRunning && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
+      if (startTimeRef.current === null) {
+        startTimeRef.current = Date.now();
+        baseTimeRef.current = timeLeft;
+      }
+
+      const handleTick = () => {
+        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        const calculatedTimeLeft = Math.max(0, baseTimeRef.current - elapsed);
+        
+        if (calculatedTimeLeft !== timeLeft) {
+          setTimeLeft(calculatedTimeLeft);
+        }
+      };
+
+      workerRef.current.onmessage = handleTick;
+      workerRef.current.postMessage('start');
     } else if (isRunning && timeLeft === 0) {
+      workerRef.current.postMessage('stop');
       handlePhaseTransition();
+    } else {
+      workerRef.current.postMessage('stop');
+      startTimeRef.current = null;
     }
 
-    return () => clearInterval(timerRef.current);
-  }, [isRunning, timeLeft]);
+    return () => {
+      if (workerRef.current) workerRef.current.postMessage('stop');
+    };
+  }, [isRunning, timeLeft, status]);
 
   // Handle countdown sounds
   useEffect(() => {
@@ -249,6 +317,8 @@ function App() {
     setStatus(phase);
     setTimeLeft(time);
     setTotalTime(time);
+    startTimeRef.current = Date.now();
+    baseTimeRef.current = time;
   };
 
   const startWorkout = () => {
@@ -307,6 +377,8 @@ function App() {
       }
     }
     setIsRunning(true);
+    startTimeRef.current = Date.now();
+    baseTimeRef.current = (status === PHASES.IDLE || status === PHASES.FINISHED) ? (settings.warmup > 0 ? settings.warmup : settings.workout) : timeLeft;
   };
 
   const handleReset = () => {
@@ -315,6 +387,7 @@ function App() {
     setTimeLeft(0);
     setCurrentRound(1);
     setCurrentSet(1);
+    startTimeRef.current = null;
     if (wakeLock.current) wakeLock.current.release();
   };
 
