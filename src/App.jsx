@@ -433,7 +433,7 @@ function App() {
     try {
       const pipWindow = await window.documentPictureInPicture.requestWindow({
         width: 400,
-        height: 500,
+        height: 550,
       });
 
       pipWindowRef.current = pipWindow;
@@ -463,6 +463,7 @@ function App() {
       const container = document.getElementById('timer-container');
       if (container) {
         pipWindow.document.body.appendChild(container);
+
         // Ensure body has background in PiP
         pipWindow.document.body.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
         pipWindow.document.body.style.margin = '0';
@@ -644,23 +645,25 @@ function App() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => setIsRunning(!isRunning)} style={{ flex: 1, minWidth: '100px', backgroundColor: isRunning ? '#e74c3c' : '#2ecc71' }}>
-              {isRunning ? 'Pause' : 'Resume'}
-            </button>
-            <button onClick={handleReset} style={{ flex: 1, minWidth: '100px', backgroundColor: '#7f8c8d' }}>
-              Reset
-            </button>
-            {window.documentPictureInPicture && !isPipActive && (
-              <button 
-                onClick={togglePip} 
-                style={{ flex: '1 1 100%', marginTop: '10px', backgroundColor: '#34495e', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-              >
-                <span>Pop-out Timer</span>
-                <span style={{ fontSize: '0.8rem' }}>📺</span>
+          {!isPipActive && (
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button onClick={() => setIsRunning(!isRunning)} style={{ flex: 1, minWidth: '100px', backgroundColor: isRunning ? '#e74c3c' : '#2ecc71' }}>
+                {isRunning ? 'Pause' : 'Resume'}
               </button>
-            )}
-          </div>
+              <button onClick={handleReset} style={{ flex: 1, minWidth: '100px', backgroundColor: '#7f8c8d' }}>
+                Reset
+              </button>
+              {window.documentPictureInPicture && (
+                <button 
+                  onClick={togglePip} 
+                  style={{ flex: '1 1 100%', marginTop: '10px', backgroundColor: '#34495e', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
+                  <span>Pop-out Timer</span>
+                  <span style={{ fontSize: '0.8rem' }}>📺</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
