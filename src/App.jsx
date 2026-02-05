@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = {
   rounds: 8,
   sets: 3,
   setRest: 30,
-  cooldown: 60
+  cooldown: 60,
+  volume: 3
 };
 
 const PHASES = {
@@ -94,6 +95,22 @@ const SettingControl = ({ value, onChange, step, isTime }) => {
         onKeyDown={handleKeyDown}
       />
       <button onClick={() => onChange(value + step)} tabIndex="-1">+</button>
+    </div>
+  );
+};
+
+const VolumeControl = ({ value, onChange }) => {
+  return (
+    <div className="volume-control">
+      {[1, 2, 3, 4, 5].map(v => (
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          className={`volume-btn ${v === value ? 'active' : ''}`}
+        >
+          {v}
+        </button>
+      ))}
     </div>
   );
 };
@@ -216,6 +233,7 @@ function App() {
 
   // Audio helper
   const playSound = (freq, duration, type = 'sine', startTime = null) => {
+    initAudio();
     if (!audioContext.current) return;
     const ctx = audioContext.current;
     const start = startTime || ctx.currentTime;
@@ -223,13 +241,17 @@ function App() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
+    // Map 1-5 to actual gain. 1 = 0.1, 5 = 0.5
+    const volumes = [0.1, 0.2, 0.3, 0.4, 0.5];
+    const gainValue = volumes[(settings.volume || 3) - 1];
+
     osc.type = type;
     osc.frequency.value = freq;
     osc.connect(gain);
     gain.connect(ctx.destination);
     
     osc.start(start);
-    gain.gain.setValueAtTime(0.1, start);
+    gain.gain.setValueAtTime(gainValue, start);
     gain.gain.exponentialRampToValueAtTime(0.00001, start + duration);
     osc.stop(start + duration);
   };
@@ -555,6 +577,18 @@ function App() {
           {renderSetting('sets', 'Sets', 1)}
           {renderSetting('setRest', 'Set Rest')}
           {renderSetting('cooldown', 'Cooldown')}
+          <div className="setting-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
+            <span style={{ fontWeight: 500 }}>Alert Volume</span>
+            <VolumeControl 
+              value={settings.volume} 
+              onChange={(v) => {
+                updateSetting('volume', v);
+                initAudio(); // Initialize audio if not already done
+                // Brief preview sound
+                setTimeout(() => playTick(), 50);
+              }} 
+            />
+          </div>
         </div>
 
         <button 
@@ -634,7 +668,7 @@ function App() {
             color={PHASE_COLORS[status]} 
           />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
               <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>ROUND</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{currentRound} / {settings.rounds}</div>
@@ -644,6 +678,20 @@ function App() {
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{currentSet} / {settings.sets}</div>
             </div>
           </div>
+
+          {!isPipActive && (
+            <div style={{ marginBottom: '30px' }}>
+              <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '10px' }}>VOLUME</div>
+              <VolumeControl 
+                value={settings.volume} 
+                onChange={(v) => {
+                  updateSetting('volume', v);
+                  initAudio();
+                  setTimeout(() => playTick(), 50);
+                }} 
+              />
+            </div>
+          )}
 
           {!isPipActive && (
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>

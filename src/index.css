@@ -158,3 +158,40 @@ button:focus-visible {
     font-size: 2.8rem;
   }
 }
+
+/* Volume Control Styles */
+.volume-control {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.volume-btn {
+  flex: 1;
+  padding: 8px 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  min-width: 40px;
+}
+
+.volume-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.volume-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
+}
+
+.volume-btn:active {
+  transform: scale(0.95);
+}
